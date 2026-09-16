@@ -293,6 +293,7 @@ process.ntuples = ElectronSkimmer.clone(
     metFilters = cms.vstring(metFilters),
     triggerPaths = cms.vstring(triggerPaths),
     effAreasConfigFile = cms.FileInPath(effAreaInputPath),
+    standAloneMuons = cms.InputTag("standAloneMuons", "UpdatedAtVtx"),
     displacedStandAloneMuons = cms.InputTag("displacedStandAloneMuons"),
 
     # Strict propagation to station 1.

@@ -182,6 +182,8 @@ public:
     // New nearest-reco matching diagnostics
     float genSigMuonMinDrToRecoMuon_;
     int genSigMuonMatchRecoMuonIdx_;
+    float genSigMuonMinDrToSTAMuon_;
+    int genSigMuonMatchSTAMuonIdx_;
     float genSigMuonMinDrToDSAMuon_;
     int genSigMuonMatchDSAMuonIdx_;
 
@@ -209,6 +211,12 @@ public:
     float genSigMuonPropSt4Phi_;
     float genSigMuonPropSt4MomEta_;
     float genSigMuonPropSt4MomPhi_;
+
+    // Propagated same-sign STA matching diagnostics
+    float genSigMuonMinDrToSTAMuonPropSt1_;
+    int   genSigMuonMatchSTAMuonPropSt1Idx_;
+    float genSigMuonMinDrToSTAMuonPropSt2_;
+    int   genSigMuonMatchSTAMuonPropSt2Idx_;
 
     // Propagated same-sign DSA matching diagnostics
     float genSigMuonMinDrToDSAMuonPropSt1_;
@@ -257,6 +265,8 @@ public:
     // New nearest-reco matching diagnostics
     float genSigAntiMuonMinDrToRecoMuon_;
     int genSigAntiMuonMatchRecoMuonIdx_;
+    float genSigAntiMuonMinDrToSTAMuon_;
+    int genSigAntiMuonMatchSTAMuonIdx_;
     float genSigAntiMuonMinDrToDSAMuon_;
     int genSigAntiMuonMatchDSAMuonIdx_;
 
@@ -285,6 +295,12 @@ public:
     float genSigAntiMuonPropSt4Phi_;
     float genSigAntiMuonPropSt4MomEta_;
     float genSigAntiMuonPropSt4MomPhi_;
+
+    // Propagated same-sign STA matching diagnostics
+    float genSigAntiMuonMinDrToSTAMuonPropSt1_;
+    int   genSigAntiMuonMatchSTAMuonPropSt1Idx_;
+    float genSigAntiMuonMinDrToSTAMuonPropSt2_;
+    int   genSigAntiMuonMatchSTAMuonPropSt2Idx_;
 
     // Propagated same-sign DSA matching diagnostics
     float genSigAntiMuonMinDrToDSAMuonPropSt1_;
@@ -434,7 +450,7 @@ public:
     //   2 = outerTrack / standAloneMuon
     //   3 = innerTrack
     //
-    // Station-2 status:
+    // Station-1/2 status:
     //   0 = no usable propagation track
     //   1 = propagation attempted but failed
     //   2 = propagation succeeded
@@ -454,8 +470,17 @@ public:
     vector<int> pfMuonTrkNumValidPixelHits_;
     vector<int> pfMuonTrkNumValidStripHits_;
     vector<int> pfMuonNumMatchedStations_;
+    vector<int> pfMuonPropSt1Status_;
+    vector<int> pfMuonPropSt1Idx_;
     vector<int> pfMuonPropSt2Status_;
     vector<int> pfMuonPropSt2Idx_;
+
+    // Successfully propagated PF muons at Station 1.
+    int nPropPFMuonSt1_;
+    vector<int> propPFMuonSt1PFMuonIdx_;
+    vector<math::XYZTLorentzVector> propPFMuonSt1P4_;
+    vector<float> propPFMuonSt1PositionEta_;
+    vector<float> propPFMuonSt1PositionPhi_;
 
     // Successfully propagated PF muons at Station 2.
     int nPropPFMuonSt2_;
@@ -645,6 +670,70 @@ public:
     vector<int> recoAllLowPtElectronGEDidx_;
     vector<bool> recoAllLowPtElectronGEDisMatched_;
 
+    // Standard standalone (STA) muons from standAloneMuons:UpdatedAtVtx.
+    // The source collection is kept without kinematic or ID cuts.
+    int nSTAMuon_;
+    std::vector<float> recoSTAMuonPt_;
+    std::vector<float> recoSTAMuonPtErr_;
+    std::vector<float> recoSTAMuonEta_;
+    std::vector<float> recoSTAMuonEtaErr_;
+    std::vector<float> recoSTAMuonPhi_;
+    std::vector<float> recoSTAMuonPhiErr_;
+    std::vector<float> recoSTAMuonOuterPhi_;
+    std::vector<float> recoSTAMuonOuterEta_;
+    std::vector<float> recoSTAMuonE_;
+    std::vector<float> recoSTAMuonPx_;
+    std::vector<float> recoSTAMuonPy_;
+    std::vector<float> recoSTAMuonPz_;
+    std::vector<float> recoSTAMuonVxy_;
+    std::vector<float> recoSTAMuonVz_;
+    std::vector<float> recoSTAMuonDxy_;
+    std::vector<float> recoSTAMuonDxyError_;
+    std::vector<float> recoSTAMuonDz_;
+    std::vector<float> recoSTAMuonDzError_;
+    std::vector<float> recoSTAMuonTrkChi2_;
+    std::vector<float> recoSTAMuonTrkProb_;
+    std::vector<int> recoSTAMuonTrkNumTrackerHits_;
+    std::vector<int> recoSTAMuonTrkNumPixHits_;
+    std::vector<int> recoSTAMuonTrkNumStripHits_;
+    std::vector<int> recoSTAMuonCharge_;
+    std::vector<int> recoSTAMuonDisplacedId_;
+    std::vector<int> recoSTAMuonTrkNumCSCHits_;
+    std::vector<int> recoSTAMuonTrkNumHits_;
+    std::vector<int> recoSTAMuonTrkNumPlanes_;
+    std::vector<int> recoSTAMuonTrkNumDTHits_;
+    std::vector<int> recoSTAMuonIdx_;
+    std::vector<math::XYZTLorentzVector> recoSTAMuonP4_;
+
+    // STA tracks propagated to Station 1 and Station 2. The aligned arrays
+    // have one entry per STAMuon; the compact PropSTAMuon collections contain
+    // only successful propagations and are linked in both directions by index.
+    std::vector<int>   recoSTAMuonPropSt1Valid_;
+    std::vector<float> recoSTAMuonPropSt1Eta_;
+    std::vector<float> recoSTAMuonPropSt1Phi_;
+    std::vector<float> recoSTAMuonPropSt1MomEta_;
+    std::vector<float> recoSTAMuonPropSt1MomPhi_;
+    std::vector<int>   recoSTAMuonPropSt1Idx_;
+
+    std::vector<int>   recoSTAMuonPropSt2Valid_;
+    std::vector<float> recoSTAMuonPropSt2Eta_;
+    std::vector<float> recoSTAMuonPropSt2Phi_;
+    std::vector<float> recoSTAMuonPropSt2MomEta_;
+    std::vector<float> recoSTAMuonPropSt2MomPhi_;
+    std::vector<int>   recoSTAMuonPropSt2Idx_;
+
+    int nPropSTAMuonSt1_;
+    std::vector<int> propSTAMuonSt1STAMuonIdx_;
+    std::vector<math::XYZTLorentzVector> propSTAMuonSt1P4_;
+    std::vector<float> propSTAMuonSt1PositionEta_;
+    std::vector<float> propSTAMuonSt1PositionPhi_;
+
+    int nPropSTAMuonSt2_;
+    std::vector<int> propSTAMuonSt2STAMuonIdx_;
+    std::vector<math::XYZTLorentzVector> propSTAMuonSt2P4_;
+    std::vector<float> propSTAMuonSt2PositionEta_;
+    std::vector<float> propSTAMuonSt2PositionPhi_;
+
     // DSA Muons
     int nDSAMuon_;
     std::vector<float> recoDSAMuonPt_;
@@ -685,6 +774,7 @@ public:
     std::vector<float> recoDSAMuonPropSt1Phi_;
     std::vector<float> recoDSAMuonPropSt1MomEta_;
     std::vector<float> recoDSAMuonPropSt1MomPhi_;
+    std::vector<int>   recoDSAMuonPropSt1Idx_;
 
     std::vector<int>   recoDSAMuonPropSt2Valid_;
     std::vector<float> recoDSAMuonPropSt2Eta_;
@@ -704,6 +794,13 @@ public:
     std::vector<float> recoDSAMuonPropSt4Phi_;
     std::vector<float> recoDSAMuonPropSt4MomEta_;
     std::vector<float> recoDSAMuonPropSt4MomPhi_;
+
+    // Successfully propagated DSA muons at Station 1.
+    int nPropDSAMuonSt1_;
+    std::vector<int> propDSAMuonSt1DSAMuonIdx_;
+    std::vector<math::XYZTLorentzVector> propDSAMuonSt1P4_;
+    std::vector<float> propDSAMuonSt1PositionEta_;
+    std::vector<float> propDSAMuonSt1PositionPhi_;
 
     // Successfully propagated DSA muons at Station 2.
     int nPropDSAMuonSt2_;

@@ -12,7 +12,7 @@
 //         Created:  Tue, 21 Sep 2021 17:00:38 GMT
 //
 // Muon modifications by:  Alaa Adel Abdelhamid
-//         Last Modified:  Thu, 30 Jul 2026 (indexed Station-2 propagated collections)
+//         Last Modified:  Wed, 16 Sep 2026 (STA and Station-1/2 reco propagation)
 //
 
 #include <algorithm>
@@ -200,7 +200,7 @@ class ElectronSkimmer : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::on
       const edm::ESGetToken<TransientTrackBuilder, TransientTrackRecord> ttkToken_;
 
       // Real CMSSW propagation for charged gen leptons, PF muons, signal
-      // gen leptons, and DSA tracks.
+      // gen leptons, standard standalone tracks, and DSA tracks.
       // Stations 1 and 2 use the standard PropagateToMuon helper. Stations 3
       // and 4 use the same magnetic field, stepping-helix propagator, and
       // MuonDetLayerGeometry through the generic surface helper below.
@@ -212,6 +212,7 @@ class ElectronSkimmer : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::on
       const edm::ESGetToken<MuonDetLayerGeometry, MuonRecoGeometryRecord> muonGeometryToken_;
       const edm::ESGetToken<Propagator, TrackingComponentsRecord> stationPropagatorAlongToken_;
 
+      const edm::EDGetTokenT<vector<reco::Track> > staMuonToken_;
       const edm::EDGetTokenT<vector<reco::Track> > dsaMuonToken_;
       // Added to allow "RECO" or "PAT" tags
       edm::EDGetTokenT<vector<reco::Conversion> > conversionsAltToken_;
@@ -243,6 +244,7 @@ class ElectronSkimmer : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::on
       edm::Handle<vector<pat::IsolatedTrack> > isoTrackHandle_;
       edm::Handle<vector<pat::Muon> > pfRecoMuHandle_;
       // Run3 addition
+      edm::Handle<vector<reco::Track>> staMuonHandle_;
       edm::Handle<vector<reco::Track>> dsaMuonHandle_;
   
       // Trigger variables
@@ -630,6 +632,7 @@ ElectronSkimmer::ElectronSkimmer(const edm::ParameterSet& ps)
    muonGeometryToken_(esConsumes<MuonDetLayerGeometry, MuonRecoGeometryRecord>()),
    stationPropagatorAlongToken_(esConsumes<Propagator, TrackingComponentsRecord>(
       ps.getParameter<edm::ESInputTag>("stationPropagatorAlong"))),
+   staMuonToken_(consumes<vector<reco::Track> >(ps.getParameter<edm::InputTag>("standAloneMuons"))),
    dsaMuonToken_(consumes<vector<reco::Track> >(ps.getParameter<edm::InputTag>("displacedStandAloneMuons"))),
    // Added to allow "RECO" or "PAT" tags
    conversionsAltToken_(mayConsume<vector<reco::Conversion> >(edm::InputTag("reducedEgamma","reducedConversions",
@@ -803,9 +806,13 @@ ElectronSkimmer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) 
    desc.add<edm::InputTag>("pfRecoMu", edm::InputTag("slimmedMuons"));
    
    // Run3 additions
+   desc.add<edm::InputTag>(
+      "standAloneMuons",
+      edm::InputTag("standAloneMuons", "UpdatedAtVtx")
+   );
    desc.add<edm::InputTag>("displacedStandAloneMuons",edm::InputTag("displacedStandAloneMuons"));
 
-   // Propagators used for signal gen-muon/DSA matching at the muon stations.
+   // Propagators used for gen/reco muon matching at the muon stations.
    // genMuonPropagatorSt1 should use useStation2 = false.
    // genMuonPropagatorSt2 should use useStation2 = true.
    edm::ParameterSetDescription genMuonPropagatorSt1Desc;
@@ -851,6 +858,7 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    iEvent.getByToken(isoTrackToken_,isoTrackHandle_);
    iEvent.getByToken(pfRecoMuToken_,pfRecoMuHandle_);
    // Run3 additions
+   iEvent.getByToken(staMuonToken_,staMuonHandle_);
    iEvent.getByToken(dsaMuonToken_,dsaMuonHandle_);
    // Added to allow "RECO" or "PAT" tags
    if (!conversionsHandle_.isValid())
@@ -1088,6 +1096,29 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
                hitPattern.numberOfValidStripHits()
             );
 
+            const auto propSt1 = propagateRecoTrackToStation(
+               *propagationTrack,
+               genMuonPropagatorSt1_
+            );
+            if (propSt1.valid) {
+               const int propPFMuonIdx = nt.nPropPFMuonSt1_;
+               nt.nPropPFMuonSt1_++;
+
+               nt.pfMuonPropSt1Status_.push_back(kPropagationSucceeded);
+               nt.pfMuonPropSt1Idx_.push_back(propPFMuonIdx);
+
+               nt.propPFMuonSt1PFMuonIdx_.push_back(pfMuonIdx);
+               nt.propPFMuonSt1P4_.push_back(
+                  propagatedMomentumP4(propSt1, mu.mass())
+               );
+               nt.propPFMuonSt1PositionEta_.push_back(propSt1.eta);
+               nt.propPFMuonSt1PositionPhi_.push_back(propSt1.phi);
+            }
+            else {
+               nt.pfMuonPropSt1Status_.push_back(kPropagationFailed);
+               nt.pfMuonPropSt1Idx_.push_back(-1);
+            }
+
             const auto propSt2 = propagateRecoTrackToStation(
                *propagationTrack,
                genMuonPropagatorSt2_
@@ -1116,6 +1147,8 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
             nt.pfMuonTrkNumValidTrackerHits_.push_back(-1);
             nt.pfMuonTrkNumValidPixelHits_.push_back(-1);
             nt.pfMuonTrkNumValidStripHits_.push_back(-1);
+            nt.pfMuonPropSt1Status_.push_back(kPropagationNotAttempted);
+            nt.pfMuonPropSt1Idx_.push_back(-1);
             nt.pfMuonPropSt2Status_.push_back(kPropagationNotAttempted);
             nt.pfMuonPropSt2Idx_.push_back(-1);
          }
@@ -1468,6 +1501,139 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
       ilpt_all++;
    }
 
+   // Handling standard standalone (STA) muons. Use the independent
+   // standAloneMuons:UpdatedAtVtx track collection, not the subset of PAT
+   // muons for which isStandAloneMuon() happens to be true.
+   std::vector<math::XYZTLorentzVector> sta_muon_p4s;
+   std::vector<int> sta_muon_charges;
+   std::vector<PropagatedMuonAtStation> sta_muon_prop_st1;
+   std::vector<PropagatedMuonAtStation> sta_muon_prop_st2;
+
+   const size_t nInputSTAMuons =
+      staMuonHandle_.isValid() ? staMuonHandle_->size() : 0;
+   for (size_t iSTA = 0; iSTA < nInputSTAMuons; ++iSTA) {
+      const auto& track = staMuonHandle_->at(iSTA);
+      const int staMuonIdx = nt.nSTAMuon_;
+      nt.nSTAMuon_++;
+
+      constexpr float muonMass = 0.10566;  // GeV
+      const float momentum = track.p();
+      const float energy = std::sqrt(momentum * momentum + muonMass * muonMass);
+      const math::XYZTLorentzVector p4(
+         track.px(), track.py(), track.pz(), energy
+      );
+
+      sta_muon_p4s.push_back(p4);
+      sta_muon_charges.push_back(track.charge());
+      nt.recoSTAMuonP4_.push_back(p4);
+
+      const auto staPropSt1 = propagateRecoTrackToStation(
+         track, genMuonPropagatorSt1_
+      );
+      const auto staPropSt2 = propagateRecoTrackToStation(
+         track, genMuonPropagatorSt2_
+      );
+      sta_muon_prop_st1.push_back(staPropSt1);
+      sta_muon_prop_st2.push_back(staPropSt2);
+
+      nt.recoSTAMuonPropSt1Valid_.push_back(staPropSt1.valid);
+      nt.recoSTAMuonPropSt1Eta_.push_back(staPropSt1.eta);
+      nt.recoSTAMuonPropSt1Phi_.push_back(staPropSt1.phi);
+      nt.recoSTAMuonPropSt1MomEta_.push_back(staPropSt1.momEta);
+      nt.recoSTAMuonPropSt1MomPhi_.push_back(staPropSt1.momPhi);
+      if (staPropSt1.valid) {
+         const int propSTAMuonIdx = nt.nPropSTAMuonSt1_;
+         nt.nPropSTAMuonSt1_++;
+         nt.recoSTAMuonPropSt1Idx_.push_back(propSTAMuonIdx);
+         nt.propSTAMuonSt1STAMuonIdx_.push_back(staMuonIdx);
+         nt.propSTAMuonSt1P4_.push_back(
+            propagatedMomentumP4(staPropSt1, muonMass)
+         );
+         nt.propSTAMuonSt1PositionEta_.push_back(staPropSt1.eta);
+         nt.propSTAMuonSt1PositionPhi_.push_back(staPropSt1.phi);
+      }
+      else {
+         nt.recoSTAMuonPropSt1Idx_.push_back(-1);
+      }
+
+      nt.recoSTAMuonPropSt2Valid_.push_back(staPropSt2.valid);
+      nt.recoSTAMuonPropSt2Eta_.push_back(staPropSt2.eta);
+      nt.recoSTAMuonPropSt2Phi_.push_back(staPropSt2.phi);
+      nt.recoSTAMuonPropSt2MomEta_.push_back(staPropSt2.momEta);
+      nt.recoSTAMuonPropSt2MomPhi_.push_back(staPropSt2.momPhi);
+      if (staPropSt2.valid) {
+         const int propSTAMuonIdx = nt.nPropSTAMuonSt2_;
+         nt.nPropSTAMuonSt2_++;
+         nt.recoSTAMuonPropSt2Idx_.push_back(propSTAMuonIdx);
+         nt.propSTAMuonSt2STAMuonIdx_.push_back(staMuonIdx);
+         nt.propSTAMuonSt2P4_.push_back(
+            propagatedMomentumP4(staPropSt2, muonMass)
+         );
+         nt.propSTAMuonSt2PositionEta_.push_back(staPropSt2.eta);
+         nt.propSTAMuonSt2PositionPhi_.push_back(staPropSt2.phi);
+      }
+      else {
+         nt.recoSTAMuonPropSt2Idx_.push_back(-1);
+      }
+
+      nt.recoSTAMuonIdx_.push_back(static_cast<int>(iSTA));
+      nt.recoSTAMuonPt_.push_back(track.pt());
+      nt.recoSTAMuonPtErr_.push_back(track.ptError());
+      nt.recoSTAMuonEta_.push_back(track.eta());
+      nt.recoSTAMuonEtaErr_.push_back(track.etaError());
+      nt.recoSTAMuonPhi_.push_back(track.phi());
+      nt.recoSTAMuonPhiErr_.push_back(track.phiError());
+
+      const bool hasTrackExtra =
+         track.extra().isNonnull() && track.extra().isAvailable();
+      nt.recoSTAMuonOuterEta_.push_back(
+         hasTrackExtra ? track.outerEta() : -999.0
+      );
+      nt.recoSTAMuonOuterPhi_.push_back(
+         hasTrackExtra ? track.outerPhi() : -999.0
+      );
+
+      nt.recoSTAMuonE_.push_back(energy);
+      nt.recoSTAMuonPx_.push_back(track.px());
+      nt.recoSTAMuonPy_.push_back(track.py());
+      nt.recoSTAMuonPz_.push_back(track.pz());
+      nt.recoSTAMuonVxy_.push_back(track.vertex().rho());
+      nt.recoSTAMuonVz_.push_back(track.vertex().z());
+      nt.recoSTAMuonDxy_.push_back(track.dxy(pv.position()));
+      nt.recoSTAMuonDxyError_.push_back(track.dxyError());
+      nt.recoSTAMuonDz_.push_back(track.dz(pv.position()));
+      nt.recoSTAMuonDzError_.push_back(track.dzError());
+      nt.recoSTAMuonTrkChi2_.push_back(track.normalizedChi2());
+      nt.recoSTAMuonTrkProb_.push_back(
+         TMath::Prob(track.chi2(), static_cast<int>(track.ndof()))
+      );
+
+      const auto& hitPattern = track.hitPattern();
+      nt.recoSTAMuonTrkNumTrackerHits_.push_back(
+         hitPattern.numberOfValidTrackerHits()
+      );
+      nt.recoSTAMuonTrkNumPixHits_.push_back(
+         hitPattern.numberOfValidPixelHits()
+      );
+      nt.recoSTAMuonTrkNumStripHits_.push_back(
+         hitPattern.numberOfValidStripHits()
+      );
+      nt.recoSTAMuonCharge_.push_back(track.charge());
+      nt.recoSTAMuonTrkNumCSCHits_.push_back(
+         hitPattern.numberOfValidMuonCSCHits()
+      );
+      nt.recoSTAMuonTrkNumDTHits_.push_back(
+         hitPattern.numberOfValidMuonDTHits()
+      );
+      nt.recoSTAMuonTrkNumHits_.push_back(
+         hitPattern.numberOfValidMuonHits()
+      );
+      nt.recoSTAMuonTrkNumPlanes_.push_back(
+         hitPattern.muonStationsWithValidHits()
+      );
+      nt.recoSTAMuonDisplacedId_.push_back(passesDisplacedID(track) ? 1 : 0);
+   }
+
    // Handling DSA Muons
    std::vector<reco::Track> dsa_muonTracks{};
    std::vector<math::XYZTLorentzVector> dsa_muon_p4s;
@@ -1512,6 +1678,21 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
       nt.recoDSAMuonPropSt1Phi_.push_back(dsaPropSt1.phi);
       nt.recoDSAMuonPropSt1MomEta_.push_back(dsaPropSt1.momEta);
       nt.recoDSAMuonPropSt1MomPhi_.push_back(dsaPropSt1.momPhi);
+      if (dsaPropSt1.valid) {
+         const int propDSAMuonIdx = nt.nPropDSAMuonSt1_;
+         nt.nPropDSAMuonSt1_++;
+
+         nt.recoDSAMuonPropSt1Idx_.push_back(propDSAMuonIdx);
+         nt.propDSAMuonSt1DSAMuonIdx_.push_back(dsaMuonIdx);
+         nt.propDSAMuonSt1P4_.push_back(
+            propagatedMomentumP4(dsaPropSt1, mass)
+         );
+         nt.propDSAMuonSt1PositionEta_.push_back(dsaPropSt1.eta);
+         nt.propDSAMuonSt1PositionPhi_.push_back(dsaPropSt1.phi);
+      }
+      else {
+         nt.recoDSAMuonPropSt1Idx_.push_back(-1);
+      }
 
       nt.recoDSAMuonPropSt2Valid_.push_back(dsaPropSt2.valid);
       nt.recoDSAMuonPropSt2Eta_.push_back(dsaPropSt2.eta);
@@ -2440,8 +2621,10 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
       // Nearest same-sign reco-object matching diagnostics for signal gen muons.
       // The minDr branches below are charge-aware:
       //   GenSigMuon_minDrToRecoMuon        = closest PF/reco muon with same charge
+      //   GenSigMuon_minDrToSTAMuon         = closest STA muon with same charge
       //   GenSigMuon_minDrToDSAMuon         = closest DSA muon with same charge
       //   GenSigAntiMuon_minDrToRecoMuon    = closest PF/reco muon with same charge
+      //   GenSigAntiMuon_minDrToSTAMuon     = closest STA muon with same charge
       //   GenSigAntiMuon_minDrToDSAMuon     = closest DSA muon with same charge
       // If no same-sign reco object exists, bestIdx remains -1 and minDr remains 999.
       auto nearestMatchSameSign = [](
@@ -2473,6 +2656,7 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
       if (foundGenSigMuon) {
          int idxPF = -1;
+         int idxSTA = -1;
          int idxDSA = -1;
 
          nt.genSigMuonMinDrToRecoMuon_ = nearestMatchSameSign(
@@ -2484,6 +2668,15 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
          );
          nt.genSigMuonMatchRecoMuonIdx_ = idxPF;
 
+         nt.genSigMuonMinDrToSTAMuon_ = nearestMatchSameSign(
+            gen_sig_muon_p4,
+            nt.genSigMuonCharge_,
+            sta_muon_p4s,
+            sta_muon_charges,
+            idxSTA
+         );
+         nt.genSigMuonMatchSTAMuonIdx_ = idxSTA;
+
          nt.genSigMuonMinDrToDSAMuon_ = nearestMatchSameSign(
             gen_sig_muon_p4,
             nt.genSigMuonCharge_,
@@ -2492,6 +2685,28 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
             idxDSA
          );
          nt.genSigMuonMatchDSAMuonIdx_ = idxDSA;
+
+         int idxSTAPropSt1 = -1;
+         int idxSTAPropSt2 = -1;
+         nt.genSigMuonMinDrToSTAMuonPropSt1_ = nearestPropagatedMatchSameSign(
+            gen_sig_muon_prop_st1,
+            nt.genSigMuonCharge_,
+            sta_muon_prop_st1,
+            sta_muon_charges,
+            idxSTAPropSt1,
+            false
+         );
+         nt.genSigMuonMatchSTAMuonPropSt1Idx_ = idxSTAPropSt1;
+
+         nt.genSigMuonMinDrToSTAMuonPropSt2_ = nearestPropagatedMatchSameSign(
+            gen_sig_muon_prop_st2,
+            nt.genSigMuonCharge_,
+            sta_muon_prop_st2,
+            sta_muon_charges,
+            idxSTAPropSt2,
+            false
+         );
+         nt.genSigMuonMatchSTAMuonPropSt2Idx_ = idxSTAPropSt2;
 
          int idxDSAPropSt1 = -1;
          int idxDSAPropSt2 = -1;
@@ -2540,6 +2755,7 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
       if (foundGenSigAntiMuon) {
          int idxPF = -1;
+         int idxSTA = -1;
          int idxDSA = -1;
 
          nt.genSigAntiMuonMinDrToRecoMuon_ = nearestMatchSameSign(
@@ -2551,6 +2767,15 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
          );
          nt.genSigAntiMuonMatchRecoMuonIdx_ = idxPF;
 
+         nt.genSigAntiMuonMinDrToSTAMuon_ = nearestMatchSameSign(
+            gen_sig_antimuon_p4,
+            nt.genSigAntiMuonCharge_,
+            sta_muon_p4s,
+            sta_muon_charges,
+            idxSTA
+         );
+         nt.genSigAntiMuonMatchSTAMuonIdx_ = idxSTA;
+
          nt.genSigAntiMuonMinDrToDSAMuon_ = nearestMatchSameSign(
             gen_sig_antimuon_p4,
             nt.genSigAntiMuonCharge_,
@@ -2559,6 +2784,28 @@ ElectronSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
             idxDSA
          );
          nt.genSigAntiMuonMatchDSAMuonIdx_ = idxDSA;
+
+         int idxSTAPropSt1 = -1;
+         int idxSTAPropSt2 = -1;
+         nt.genSigAntiMuonMinDrToSTAMuonPropSt1_ = nearestPropagatedMatchSameSign(
+            gen_sig_antimuon_prop_st1,
+            nt.genSigAntiMuonCharge_,
+            sta_muon_prop_st1,
+            sta_muon_charges,
+            idxSTAPropSt1,
+            false
+         );
+         nt.genSigAntiMuonMatchSTAMuonPropSt1Idx_ = idxSTAPropSt1;
+
+         nt.genSigAntiMuonMinDrToSTAMuonPropSt2_ = nearestPropagatedMatchSameSign(
+            gen_sig_antimuon_prop_st2,
+            nt.genSigAntiMuonCharge_,
+            sta_muon_prop_st2,
+            sta_muon_charges,
+            idxSTAPropSt2,
+            false
+         );
+         nt.genSigAntiMuonMatchSTAMuonPropSt2Idx_ = idxSTAPropSt2;
 
          int idxDSAPropSt1 = -1;
          int idxDSAPropSt2 = -1;
