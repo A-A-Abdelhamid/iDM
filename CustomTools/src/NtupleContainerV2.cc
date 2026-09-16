@@ -36,7 +36,7 @@ void NtupleContainerV2::CreateTreeBranches() {
     outT->Branch("Muon_isGlobalMuon",&recoMuonIsGlobalMuon_);
     outT->Branch("Muon_isStandAloneMuon",&recoMuonIsStandAloneMuon_);
 
-    // All PF muons and the successful Station-2 propagated PF-muon view.
+    // All PF muons and successful Station-1/2 propagated PF-muon views.
     outT->Branch("nPFMuon",&nPFMuon_);
     outT->Branch("PFMuon_patMuonIdx",&pfMuonPatIdx_);
     outT->Branch("PFMuon_p4",&pfMuonP4_);
@@ -53,8 +53,16 @@ void NtupleContainerV2::CreateTreeBranches() {
     outT->Branch("PFMuon_trkNumValidPixelHits",&pfMuonTrkNumValidPixelHits_);
     outT->Branch("PFMuon_trkNumValidStripHits",&pfMuonTrkNumValidStripHits_);
     outT->Branch("PFMuon_numMatchedStations",&pfMuonNumMatchedStations_);
+    outT->Branch("PFMuon_propSt1Status",&pfMuonPropSt1Status_);
+    outT->Branch("PFMuon_propSt1Idx",&pfMuonPropSt1Idx_);
     outT->Branch("PFMuon_propSt2Status",&pfMuonPropSt2Status_);
     outT->Branch("PFMuon_propSt2Idx",&pfMuonPropSt2Idx_);
+
+    outT->Branch("nPropPFMuonSt1",&nPropPFMuonSt1_);
+    outT->Branch("PropPFMuonSt1_pfMuonIdx",&propPFMuonSt1PFMuonIdx_);
+    outT->Branch("PropPFMuonSt1_p4",&propPFMuonSt1P4_);
+    outT->Branch("PropPFMuonSt1_positionEta",&propPFMuonSt1PositionEta_);
+    outT->Branch("PropPFMuonSt1_positionPhi",&propPFMuonSt1PositionPhi_);
 
     outT->Branch("nPropPFMuonSt2",&nPropPFMuonSt2_);
     outT->Branch("PropPFMuonSt2_pfMuonIdx",&propPFMuonSt2PFMuonIdx_);
@@ -243,6 +251,66 @@ void NtupleContainerV2::CreateTreeBranches() {
     outT->Branch("AllLptElectron_gedIdx",&recoAllLowPtElectronGEDidx_);
     outT->Branch("AllLptElectron_gedIsMatched",&recoAllLowPtElectronGEDisMatched_);
 
+    // Standard standalone (STA) muons.
+    outT->Branch("nSTAMuon", &nSTAMuon_);
+    outT->Branch("recoSTAMuonPt", &recoSTAMuonPt_);
+    outT->Branch("recoSTAMuonPtErr", &recoSTAMuonPtErr_);
+    outT->Branch("recoSTAMuonEta", &recoSTAMuonEta_);
+    outT->Branch("recoSTAMuonEtaErr", &recoSTAMuonEtaErr_);
+    outT->Branch("recoSTAMuonPhi", &recoSTAMuonPhi_);
+    outT->Branch("recoSTAMuonPhiErr", &recoSTAMuonPhiErr_);
+    outT->Branch("recoSTAMuonOuterEta", &recoSTAMuonOuterEta_);
+    outT->Branch("recoSTAMuonOuterPhi", &recoSTAMuonOuterPhi_);
+    outT->Branch("recoSTAMuonE", &recoSTAMuonE_);
+    outT->Branch("recoSTAMuonPx", &recoSTAMuonPx_);
+    outT->Branch("recoSTAMuonPy", &recoSTAMuonPy_);
+    outT->Branch("recoSTAMuonPz", &recoSTAMuonPz_);
+    outT->Branch("recoSTAMuonVxy", &recoSTAMuonVxy_);
+    outT->Branch("recoSTAMuonVz", &recoSTAMuonVz_);
+    outT->Branch("recoSTAMuonDxy", &recoSTAMuonDxy_);
+    outT->Branch("recoSTAMuonDxyError", &recoSTAMuonDxyError_);
+    outT->Branch("recoSTAMuonDz", &recoSTAMuonDz_);
+    outT->Branch("recoSTAMuonDzError", &recoSTAMuonDzError_);
+    outT->Branch("recoSTAMuonTrkChi2", &recoSTAMuonTrkChi2_);
+    outT->Branch("recoSTAMuonTrkProb", &recoSTAMuonTrkProb_);
+    outT->Branch("recoSTAMuonTrkNumTrackerHits", &recoSTAMuonTrkNumTrackerHits_);
+    outT->Branch("recoSTAMuonTrkNumPixHits", &recoSTAMuonTrkNumPixHits_);
+    outT->Branch("recoSTAMuonTrkNumStripHits", &recoSTAMuonTrkNumStripHits_);
+    outT->Branch("recoSTAMuonCharge", &recoSTAMuonCharge_);
+    outT->Branch("recoSTAMuonDisplacedId", &recoSTAMuonDisplacedId_);
+    outT->Branch("recoSTAMuonTrkNumCSCHits", &recoSTAMuonTrkNumCSCHits_);
+    outT->Branch("recoSTAMuonTrkNumHits", &recoSTAMuonTrkNumHits_);
+    outT->Branch("recoSTAMuonTrkNumPlanes", &recoSTAMuonTrkNumPlanes_);
+    outT->Branch("recoSTAMuonTrkNumDTHits", &recoSTAMuonTrkNumDTHits_);
+    outT->Branch("recoSTAMuonIdx", &recoSTAMuonIdx_);
+    outT->Branch("recoSTAMuonP4", &recoSTAMuonP4_);
+
+    outT->Branch("recoSTAMuonPropSt1Valid", &recoSTAMuonPropSt1Valid_);
+    outT->Branch("recoSTAMuonPropSt1Eta", &recoSTAMuonPropSt1Eta_);
+    outT->Branch("recoSTAMuonPropSt1Phi", &recoSTAMuonPropSt1Phi_);
+    outT->Branch("recoSTAMuonPropSt1MomEta", &recoSTAMuonPropSt1MomEta_);
+    outT->Branch("recoSTAMuonPropSt1MomPhi", &recoSTAMuonPropSt1MomPhi_);
+    outT->Branch("recoSTAMuonPropSt1Idx", &recoSTAMuonPropSt1Idx_);
+
+    outT->Branch("recoSTAMuonPropSt2Valid", &recoSTAMuonPropSt2Valid_);
+    outT->Branch("recoSTAMuonPropSt2Eta", &recoSTAMuonPropSt2Eta_);
+    outT->Branch("recoSTAMuonPropSt2Phi", &recoSTAMuonPropSt2Phi_);
+    outT->Branch("recoSTAMuonPropSt2MomEta", &recoSTAMuonPropSt2MomEta_);
+    outT->Branch("recoSTAMuonPropSt2MomPhi", &recoSTAMuonPropSt2MomPhi_);
+    outT->Branch("recoSTAMuonPropSt2Idx", &recoSTAMuonPropSt2Idx_);
+
+    outT->Branch("nPropSTAMuonSt1", &nPropSTAMuonSt1_);
+    outT->Branch("PropSTAMuonSt1_staMuonIdx", &propSTAMuonSt1STAMuonIdx_);
+    outT->Branch("PropSTAMuonSt1_p4", &propSTAMuonSt1P4_);
+    outT->Branch("PropSTAMuonSt1_positionEta", &propSTAMuonSt1PositionEta_);
+    outT->Branch("PropSTAMuonSt1_positionPhi", &propSTAMuonSt1PositionPhi_);
+
+    outT->Branch("nPropSTAMuonSt2", &nPropSTAMuonSt2_);
+    outT->Branch("PropSTAMuonSt2_staMuonIdx", &propSTAMuonSt2STAMuonIdx_);
+    outT->Branch("PropSTAMuonSt2_p4", &propSTAMuonSt2P4_);
+    outT->Branch("PropSTAMuonSt2_positionEta", &propSTAMuonSt2PositionEta_);
+    outT->Branch("PropSTAMuonSt2_positionPhi", &propSTAMuonSt2PositionPhi_);
+
     // DSA muons
     outT->Branch("nDSAMuon", &nDSAMuon_);
     outT->Branch("recoDSAMuonPt", &recoDSAMuonPt_);
@@ -282,6 +350,7 @@ void NtupleContainerV2::CreateTreeBranches() {
     outT->Branch("recoDSAMuonPropSt1Phi", &recoDSAMuonPropSt1Phi_);
     outT->Branch("recoDSAMuonPropSt1MomEta", &recoDSAMuonPropSt1MomEta_);
     outT->Branch("recoDSAMuonPropSt1MomPhi", &recoDSAMuonPropSt1MomPhi_);
+    outT->Branch("recoDSAMuonPropSt1Idx", &recoDSAMuonPropSt1Idx_);
 
     outT->Branch("recoDSAMuonPropSt2Valid", &recoDSAMuonPropSt2Valid_);
     outT->Branch("recoDSAMuonPropSt2Eta", &recoDSAMuonPropSt2Eta_);
@@ -301,6 +370,12 @@ void NtupleContainerV2::CreateTreeBranches() {
     outT->Branch("recoDSAMuonPropSt4Phi", &recoDSAMuonPropSt4Phi_);
     outT->Branch("recoDSAMuonPropSt4MomEta", &recoDSAMuonPropSt4MomEta_);
     outT->Branch("recoDSAMuonPropSt4MomPhi", &recoDSAMuonPropSt4MomPhi_);
+
+    outT->Branch("nPropDSAMuonSt1", &nPropDSAMuonSt1_);
+    outT->Branch("PropDSAMuonSt1_dsaMuonIdx", &propDSAMuonSt1DSAMuonIdx_);
+    outT->Branch("PropDSAMuonSt1_p4", &propDSAMuonSt1P4_);
+    outT->Branch("PropDSAMuonSt1_positionEta", &propDSAMuonSt1PositionEta_);
+    outT->Branch("PropDSAMuonSt1_positionPhi", &propDSAMuonSt1PositionPhi_);
 
     outT->Branch("nPropDSAMuonSt2", &nPropDSAMuonSt2_);
     outT->Branch("PropDSAMuonSt2_dsaMuonIdx", &propDSAMuonSt2DSAMuonIdx_);
@@ -714,6 +789,8 @@ void NtupleContainerV2::CreateTreeBranches() {
             outT->Branch("GenSigMuon_isPromptFinalState",&genSigMuonIsPromptFinalState_);
             outT->Branch("GenSigMuon_minDrToRecoMuon",&genSigMuonMinDrToRecoMuon_);
             outT->Branch("GenSigMuon_matchRecoMuonIdx",&genSigMuonMatchRecoMuonIdx_);
+            outT->Branch("GenSigMuon_minDrToSTAMuon",&genSigMuonMinDrToSTAMuon_);
+            outT->Branch("GenSigMuon_matchSTAMuonIdx",&genSigMuonMatchSTAMuonIdx_);
             outT->Branch("GenSigMuon_minDrToDSAMuon",&genSigMuonMinDrToDSAMuon_);
             outT->Branch("GenSigMuon_matchDSAMuonIdx",&genSigMuonMatchDSAMuonIdx_);
 
@@ -740,6 +817,11 @@ void NtupleContainerV2::CreateTreeBranches() {
             outT->Branch("GenSigMuon_propSt4Phi", &genSigMuonPropSt4Phi_);
             outT->Branch("GenSigMuon_propSt4MomEta", &genSigMuonPropSt4MomEta_);
             outT->Branch("GenSigMuon_propSt4MomPhi", &genSigMuonPropSt4MomPhi_);
+
+            outT->Branch("GenSigMuon_minDrToSTAMuonPropSt1", &genSigMuonMinDrToSTAMuonPropSt1_);
+            outT->Branch("GenSigMuon_matchSTAMuonPropSt1Idx", &genSigMuonMatchSTAMuonPropSt1Idx_);
+            outT->Branch("GenSigMuon_minDrToSTAMuonPropSt2", &genSigMuonMinDrToSTAMuonPropSt2_);
+            outT->Branch("GenSigMuon_matchSTAMuonPropSt2Idx", &genSigMuonMatchSTAMuonPropSt2Idx_);
 
             outT->Branch("GenSigMuon_minDrToDSAMuonPropSt1", &genSigMuonMinDrToDSAMuonPropSt1_);
             outT->Branch("GenSigMuon_matchDSAMuonPropSt1Idx", &genSigMuonMatchDSAMuonPropSt1Idx_);
@@ -782,6 +864,8 @@ void NtupleContainerV2::CreateTreeBranches() {
             outT->Branch("GenSigAntiMuon_isPromptFinalState",&genSigAntiMuonIsPromptFinalState_);
             outT->Branch("GenSigAntiMuon_minDrToRecoMuon",&genSigAntiMuonMinDrToRecoMuon_);
             outT->Branch("GenSigAntiMuon_matchRecoMuonIdx",&genSigAntiMuonMatchRecoMuonIdx_);
+            outT->Branch("GenSigAntiMuon_minDrToSTAMuon",&genSigAntiMuonMinDrToSTAMuon_);
+            outT->Branch("GenSigAntiMuon_matchSTAMuonIdx",&genSigAntiMuonMatchSTAMuonIdx_);
             outT->Branch("GenSigAntiMuon_minDrToDSAMuon",&genSigAntiMuonMinDrToDSAMuon_);
             outT->Branch("GenSigAntiMuon_matchDSAMuonIdx",&genSigAntiMuonMatchDSAMuonIdx_);
 
@@ -809,6 +893,11 @@ void NtupleContainerV2::CreateTreeBranches() {
             outT->Branch("GenSigAntiMuon_propSt4Phi", &genSigAntiMuonPropSt4Phi_);
             outT->Branch("GenSigAntiMuon_propSt4MomEta", &genSigAntiMuonPropSt4MomEta_);
             outT->Branch("GenSigAntiMuon_propSt4MomPhi", &genSigAntiMuonPropSt4MomPhi_);
+
+            outT->Branch("GenSigAntiMuon_minDrToSTAMuonPropSt1", &genSigAntiMuonMinDrToSTAMuonPropSt1_);
+            outT->Branch("GenSigAntiMuon_matchSTAMuonPropSt1Idx", &genSigAntiMuonMatchSTAMuonPropSt1Idx_);
+            outT->Branch("GenSigAntiMuon_minDrToSTAMuonPropSt2", &genSigAntiMuonMinDrToSTAMuonPropSt2_);
+            outT->Branch("GenSigAntiMuon_matchSTAMuonPropSt2Idx", &genSigAntiMuonMatchSTAMuonPropSt2Idx_);
 
             outT->Branch("GenSigAntiMuon_minDrToDSAMuonPropSt1", &genSigAntiMuonMinDrToDSAMuonPropSt1_);
             outT->Branch("GenSigAntiMuon_matchDSAMuonPropSt1Idx", &genSigAntiMuonMatchDSAMuonPropSt1Idx_);
@@ -964,6 +1053,8 @@ void NtupleContainerV2::ClearTreeBranches() {
     genSigMuonIsPromptFinalState_ = 0;
     genSigMuonMinDrToRecoMuon_ = 999.0;
     genSigMuonMatchRecoMuonIdx_ = -1;
+    genSigMuonMinDrToSTAMuon_ = 999.0;
+    genSigMuonMatchSTAMuonIdx_ = -1;
     genSigMuonMinDrToDSAMuon_ = 999.0;
     genSigMuonMatchDSAMuonIdx_ = -1;
 
@@ -990,6 +1081,11 @@ void NtupleContainerV2::ClearTreeBranches() {
     genSigMuonPropSt4Phi_ = -999;
     genSigMuonPropSt4MomEta_ = -999;
     genSigMuonPropSt4MomPhi_ = -999;
+
+    genSigMuonMinDrToSTAMuonPropSt1_ = 999.0;
+    genSigMuonMatchSTAMuonPropSt1Idx_ = -1;
+    genSigMuonMinDrToSTAMuonPropSt2_ = 999.0;
+    genSigMuonMatchSTAMuonPropSt2Idx_ = -1;
 
     genSigMuonMinDrToDSAMuonPropSt1_ = 999.0;
     genSigMuonMatchDSAMuonPropSt1Idx_ = -1;
@@ -1033,6 +1129,8 @@ void NtupleContainerV2::ClearTreeBranches() {
     genSigAntiMuonIsPromptFinalState_ = 0;
     genSigAntiMuonMinDrToRecoMuon_ = 999.0;
     genSigAntiMuonMatchRecoMuonIdx_ = -1;
+    genSigAntiMuonMinDrToSTAMuon_ = 999.0;
+    genSigAntiMuonMatchSTAMuonIdx_ = -1;
     genSigAntiMuonMinDrToDSAMuon_ = 999.0;
     genSigAntiMuonMatchDSAMuonIdx_ = -1;
 
@@ -1059,6 +1157,11 @@ void NtupleContainerV2::ClearTreeBranches() {
     genSigAntiMuonPropSt4Phi_ = -999;
     genSigAntiMuonPropSt4MomEta_ = -999;
     genSigAntiMuonPropSt4MomPhi_ = -999;
+
+    genSigAntiMuonMinDrToSTAMuonPropSt1_ = 999.0;
+    genSigAntiMuonMatchSTAMuonPropSt1Idx_ = -1;
+    genSigAntiMuonMinDrToSTAMuonPropSt2_ = 999.0;
+    genSigAntiMuonMatchSTAMuonPropSt2Idx_ = -1;
 
     genSigAntiMuonMinDrToDSAMuonPropSt1_ = 999.0;
     genSigAntiMuonMatchDSAMuonPropSt1Idx_ = -1;
@@ -1185,8 +1288,16 @@ void NtupleContainerV2::ClearTreeBranches() {
     pfMuonTrkNumValidPixelHits_.clear();
     pfMuonTrkNumValidStripHits_.clear();
     pfMuonNumMatchedStations_.clear();
+    pfMuonPropSt1Status_.clear();
+    pfMuonPropSt1Idx_.clear();
     pfMuonPropSt2Status_.clear();
     pfMuonPropSt2Idx_.clear();
+
+    nPropPFMuonSt1_ = 0;
+    propPFMuonSt1PFMuonIdx_.clear();
+    propPFMuonSt1P4_.clear();
+    propPFMuonSt1PositionEta_.clear();
+    propPFMuonSt1PositionPhi_.clear();
 
     nPropPFMuonSt2_ = 0;
     propPFMuonSt2PFMuonIdx_.clear();
@@ -1380,6 +1491,66 @@ void NtupleContainerV2::ClearTreeBranches() {
     genpuobs_ = -9999;
     genputrue_ = -9999;
 
+    // Standard standalone (STA) muons
+    nSTAMuon_ = 0;
+    recoSTAMuonPt_.clear();
+    recoSTAMuonPtErr_.clear();
+    recoSTAMuonEta_.clear();
+    recoSTAMuonEtaErr_.clear();
+    recoSTAMuonPhi_.clear();
+    recoSTAMuonPhiErr_.clear();
+    recoSTAMuonOuterEta_.clear();
+    recoSTAMuonOuterPhi_.clear();
+    recoSTAMuonE_.clear();
+    recoSTAMuonPx_.clear();
+    recoSTAMuonPy_.clear();
+    recoSTAMuonPz_.clear();
+    recoSTAMuonVxy_.clear();
+    recoSTAMuonVz_.clear();
+    recoSTAMuonDxy_.clear();
+    recoSTAMuonDxyError_.clear();
+    recoSTAMuonDz_.clear();
+    recoSTAMuonDzError_.clear();
+    recoSTAMuonTrkChi2_.clear();
+    recoSTAMuonTrkProb_.clear();
+    recoSTAMuonTrkNumTrackerHits_.clear();
+    recoSTAMuonTrkNumPixHits_.clear();
+    recoSTAMuonTrkNumStripHits_.clear();
+    recoSTAMuonCharge_.clear();
+    recoSTAMuonDisplacedId_.clear();
+    recoSTAMuonTrkNumCSCHits_.clear();
+    recoSTAMuonTrkNumHits_.clear();
+    recoSTAMuonTrkNumPlanes_.clear();
+    recoSTAMuonTrkNumDTHits_.clear();
+    recoSTAMuonIdx_.clear();
+    recoSTAMuonP4_.clear();
+
+    recoSTAMuonPropSt1Valid_.clear();
+    recoSTAMuonPropSt1Eta_.clear();
+    recoSTAMuonPropSt1Phi_.clear();
+    recoSTAMuonPropSt1MomEta_.clear();
+    recoSTAMuonPropSt1MomPhi_.clear();
+    recoSTAMuonPropSt1Idx_.clear();
+
+    recoSTAMuonPropSt2Valid_.clear();
+    recoSTAMuonPropSt2Eta_.clear();
+    recoSTAMuonPropSt2Phi_.clear();
+    recoSTAMuonPropSt2MomEta_.clear();
+    recoSTAMuonPropSt2MomPhi_.clear();
+    recoSTAMuonPropSt2Idx_.clear();
+
+    nPropSTAMuonSt1_ = 0;
+    propSTAMuonSt1STAMuonIdx_.clear();
+    propSTAMuonSt1P4_.clear();
+    propSTAMuonSt1PositionEta_.clear();
+    propSTAMuonSt1PositionPhi_.clear();
+
+    nPropSTAMuonSt2_ = 0;
+    propSTAMuonSt2STAMuonIdx_.clear();
+    propSTAMuonSt2P4_.clear();
+    propSTAMuonSt2PositionEta_.clear();
+    propSTAMuonSt2PositionPhi_.clear();
+
     // DSA muons
     nDSAMuon_ = 0;
     recoDSAMuonPt_.clear();
@@ -1420,6 +1591,7 @@ void NtupleContainerV2::ClearTreeBranches() {
     recoDSAMuonPropSt1Phi_.clear();
     recoDSAMuonPropSt1MomEta_.clear();
     recoDSAMuonPropSt1MomPhi_.clear();
+    recoDSAMuonPropSt1Idx_.clear();
 
     recoDSAMuonPropSt2Valid_.clear();
     recoDSAMuonPropSt2Eta_.clear();
@@ -1439,6 +1611,12 @@ void NtupleContainerV2::ClearTreeBranches() {
     recoDSAMuonPropSt4Phi_.clear();
     recoDSAMuonPropSt4MomEta_.clear();
     recoDSAMuonPropSt4MomPhi_.clear();
+
+    nPropDSAMuonSt1_ = 0;
+    propDSAMuonSt1DSAMuonIdx_.clear();
+    propDSAMuonSt1P4_.clear();
+    propDSAMuonSt1PositionEta_.clear();
+    propDSAMuonSt1PositionPhi_.clear();
 
     nPropDSAMuonSt2_ = 0;
     propDSAMuonSt2DSAMuonIdx_.clear();
